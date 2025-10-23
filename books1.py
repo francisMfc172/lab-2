@@ -1,19 +1,55 @@
-
-
 from csv import reader
+import sys
 
-bold = '\u001b[1m'
-underline = '\u001b[4m'
-reversed = '\u001b[7m'
-reset = '\u001b[0m'
+def search_books(file, author, min_price=200):
+    """Search for books by author with price above minimum threshold."""
+    results = []
+    
+    try:
+        with open(file, 'r', encoding='utf-8') as csvfile:
+            table = reader(csvfile, delimiter=';')
+            
+            # Skip header if exists
+            header = next(table, None)
+            
+            for row in table:
+                # Check if row has enough columns and author matches
+                if len(row) > 6 and author.lower() in row[2].lower():
+                    try:
+                        price = float(row[6].replace(',', '.'))
+                        if price >= min_price:
+                            results.append(row)
+                    except (ValueError, IndexError):
+                        print(f'Invalid price in row: {row}')
+                        
+    except FileNotFoundError:
+        print(f"Error: File '{file}' not found.")
+        return []
+    except Exception as e:
+        print(f"Error reading file: {e}")
+        return []
+    
+    return results
 
-count = 0
-with open('books-en.csv', 'r', encoding='windows-1251', newline='') as csvfile:
-    table = reader(csvfile, delimiter=';')
-    # Skip the header row to avoid counting it
-    next(table, None)
-    for row in table:
-        if len(row[1]) > 30:  # row[1] should be the book name field
-            count += 1
+def main():
+    file = 'books-en.csv'
+    author = input('Enter author\'s name to search: ').strip()
+    
+    if not author:
+        print("Please enter a valid author name.")
+        return
+    
+    results = search_books(file, author)
+    
+    if results:
+        print(f'\033[44mBooks by {author} priced 200 or higher:\033[0m')
+        
+        for row in results:
+            print(f'Title: {row[1]}, Author: {row[2]}, Price: {row[6]}')
+        
+        print(f'Total books found: {len(results)}')
+    else:
+        print(f'No books found by "{author}" priced 200 or higher.')
 
-print(f'{bold}The number of entries with book titles longer than 30 characters{reset}: {bold}{underline}{reversed}{count}{reset}')
+if __name__ == "__main__":
+    main()
