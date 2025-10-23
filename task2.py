@@ -1,30 +1,56 @@
 from csv import reader
-from datetime import datetime
+import sys
 
-matching_books = []
-target_year = [2014, 2016, 2017]
-extracted_years = []
-search = input('Author name: ')
-with open('books.csv', 'r', encoding='windows-1251', newline='') as csvfile:
-    table = reader(csvfile, delimiter=';')
+def search_books(file, author, min_price=200):
+    """Search for books by author with price above minimum threshold."""
+    results = []
+    
+    try:
+        with open(file, 'r', encoding='utf-8') as csvfile:
+            table = reader(csvfile, delimiter=';')
+            
+            # Skip header if exists
+            header = next(table, None)
+            
+            for row in table:
+                # Check if row has enough columns and author matches
+                if len(row) > 6 and author.lower() in row[2].lower():
+                    try:
+                        price = float(row[6].replace(',', '.'))
+                        if price >= min_price:
+                            results.append(row)
+                    except (ValueError, IndexError):
+                        print(f'Invalid price in row: {row}')
+                        
+    except FileNotFoundError:
+        print(f"Error: File '{file}' not found.")
+        return []
+    except Exception as e:
+        print(f"Error reading file: {e}")
+        return []
+    
+    return results
 
-    for row in table:
+def main():
+    file = 'books-en.csv'
+    author = input('Enter author\'s name to search: ').strip()
+    
+    if not author:
+        print("Please enter a valid author name.")
+        return
+    
+    results = search_books(file, author)
+    
+    if results:
+        print(f'\033[44mBooks by {author} priced 200 or higher:\033[0m')
+        
+        for row in results:
+            print(f'Title: {row[1]}, Author: {row[2]}, Price: {row[6]}')
+        
+        print(f'Total books found: {len(results)}')
+    else:
+        print(f'No books found by "{author}" priced 200 or higher.')
 
-        date_string = row[6]
-        try:
-            date = datetime.strptime(date_string, "%d.%m.%Y %H:%M")  
-            year = date.year
-            if year in target_year:
-                extracted_years.append(year)
-        except ValueError:
-            print(f"Invalid date format: {date_string}")
+if __name__ == "__main__":
+    main()
 
-        if row[3] == search and year in extracted_years:
-            matching_books.append(row)
-
-if matching_books:
-    print(f'Books by {search} published in 2014, 2016, or 2017 are:')
-    for row in matching_books:
-        print(f'{row[1]} \t ({row[6]})')
-else:
-    print(f'No books by {search}  are found in 2014, 2016, or 2017.')
